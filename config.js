@@ -4,10 +4,5 @@ module.exports = {
   
   port: Number(process.env.PORT) || 8080,
   databaseUrl: process.env.PG_URL || process.env.DATABASE_URL,
-<<<<<<< HEAD
- 
-=======
-  host: "0.0.0.0",
->>>>>>> bdc8e8ae3f93670e68c1beb0ae2badfc0dc4e2e1
   pageSize: 20,
 };
