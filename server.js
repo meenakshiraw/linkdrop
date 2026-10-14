@@ -1,8 +1,19 @@
+require("dotenv").config();
 const http = require('node:http');
-const { Pool } = require('pg');
+const path = require('node:path');
+const { readFile } = require('node:fs/promises');
+
+const { Pool } = require("pg");
+
+
+
 const config = require('./config');
 
-const pool = new Pool({ connectionString: config.databaseUrl, max: 5 });
+const pool = new Pool({
+  connectionString: config.databaseUrl,
+  max: 5,
+});
+
 
 function render(links) {
   const items = links
@@ -93,10 +104,39 @@ const server = http.createServer(async (req, res) => {
   }
 });
 
-server.listen(config.port, config.host, () => {
-  console.log(`linkdrop listening on http://${config.host}:${config.port}`);
-});
+
+async function start() {
+  try {
+    // 1. Check the PostgreSQL connection
+    await pool.query('SELECT 1');
+    console.log('PostgreSQL connected successfully.');
+
+    // 2. Read the SQL file from the db folder
+    const schema = await readFile(
+      path.join(__dirname, 'db', 'schema.sql'),
+      'utf8'
+    );
+
+    // 3. Automatically create the table if it does not exist
+    await pool.query(schema);
+    console.log('Table links is ready.');
+
+    // 4. Start the server
+    server.listen(config.port, config.host, () => {
+      console.log(
+        `linkdrop listening on http://${config.host}:${config.port}`
+      );
+    });
+  } catch (err) {
+    console.error('Failed to initialize database:', err);
+    await pool.end();
+    process.exit(1);
+  }
+}
+
+start();
 
 process.on('SIGTERM', () => {
   server.close(() => pool.end().then(() => process.exit(0)));
 });
+
